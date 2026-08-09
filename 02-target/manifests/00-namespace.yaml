@@ -1,0 +1,9 @@
+# Separate namespace so a compromised/misconfigured target can't accidentally
+# reach your other lab components — and so `kubectl delete -f manifests/`
+# here can never touch anything outside this phase.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: targets
+  labels:
+    purpose: security-lab

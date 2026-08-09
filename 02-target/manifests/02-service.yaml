@@ -1,0 +1,14 @@
+# ClusterIP only — reachable from other pods (like redcell-workspace) via
+# its in-cluster DNS name, but NOT from your LAN. Keeps the vulnerable app
+# off your home network by default.
+apiVersion: v1
+kind: Service
+metadata:
+  name: juice-shop
+  namespace: targets
+spec:
+  selector:
+    app: juice-shop
+  ports:
+    - port: 3000
+      targetPort: 3000

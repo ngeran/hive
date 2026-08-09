@@ -1,0 +1,17 @@
+ns := "targets"
+dep := "juice-shop"
+
+deploy:
+    kubectl apply -f manifests/00-namespace.yaml
+    kubectl apply -f manifests/
+    kubectl rollout restart deployment/{{dep}} -n {{ns}}
+    kubectl rollout status deployment/{{dep}} -n {{ns}}
+
+status:
+    kubectl get pods -n {{ns}}
+
+logs:
+    kubectl logs -f deploy/{{dep}} -n {{ns}}
+
+clean:
+    kubectl delete -f manifests/
