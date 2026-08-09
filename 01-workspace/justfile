@@ -9,7 +9,9 @@ build:
 
 # skopeo pushes the built tarball straight to your local registry
 push: build
-    skopeo copy --insecure-policy docker-archive:result docker://{{image}}:{{tag}}
+    skopeo copy --insecure-policy \
+        --dest-tls-verify=false \
+        docker-archive:result docker://{{image}}:{{tag}}
 
 # Apply manifests, force a fresh pull, wait for it to come up
 deploy: push
