@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redcell-workspace
+  namespace: redcell
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redcell-workspace
+  template:
+    metadata:
+      labels:
+        app: redcell-workspace
+    spec:
+      containers:
+        - name: redcell-workspace
+          image: localhost:5000/redcell-range:latest
+          # Fixed tag + Always is intentional (matches your other projects):
+          # k3s re-pulls on every rollout restart instead of trusting a
+          # cached :latest that might be stale.
+          imagePullPolicy: Always
+
+          securityContext:
+            # Least-privilege version of the draft's `privileged: true`.
+            # NET_RAW  -> lets nmap/masscan send raw packets (SYN scans, etc.)
+            # NET_ADMIN -> lets tcpdump put an interface into promiscuous mode
+            # This grants exactly the two things scanning tools need,
+            # instead of full root access to the host.
+            runAsUser: 0
+            capabilities:
+              add: ["NET_RAW", "NET_ADMIN"]
+
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+
+      # --- LAN scanning (commented out by default) ---
+      # By default this pod only sees k3s's internal pod network
+      # (10.42.0.0/16) — it can scan other pods/services in the cluster,
+      # but NOT your physical 10.0.0.0/24 LAN or your cRPD lab's host
+      # interfaces. If you want it to see the real LAN (e.g. to scan your
+      # router or another physical box), uncomment these two lines.
+      # This is the single biggest privilege jump in this file — the pod
+      # then shares your NixOS host's actual network namespace.
+      # hostNetwork: true
+      # dnsPolicy: ClusterFirstWithHostNet

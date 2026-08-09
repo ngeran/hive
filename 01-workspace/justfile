@@ -1,0 +1,30 @@
+image := "localhost:5000/redcell-range"
+tag := "latest"
+ns := "redcell"
+dep := "redcell-workspace"
+
+# Build the OCI image from flake.nix — no Dockerfile, no docker daemon
+build:
+    nix build .#image
+
+# skopeo pushes the built tarball straight to your local registry
+push: build
+    skopeo copy --insecure-policy docker-archive:result docker://{{image}}:{{tag}}
+
+# Apply manifests, force a fresh pull, wait for it to come up
+deploy: push
+    kubectl apply -f manifests/
+    kubectl rollout restart deployment/{{dep}} -n {{ns}}
+    kubectl rollout status deployment/{{dep}} -n {{ns}}
+
+# Drop into an interactive shell inside the running pod
+shell:
+    kubectl exec -it deploy/{{dep}} -n {{ns}} -- bash
+
+# Tail the pod's logs (mostly useful if it's crash-looping)
+logs:
+    kubectl logs -f deploy/{{dep}} -n {{ns}}
+
+# Tear down everything this project deployed
+clean:
+    kubectl delete -f manifests/
