@@ -1,0 +1,15 @@
+ns := "monitoring"
+
+deploy:
+    kubectl apply -f manifests/
+    kubectl rollout restart deployment/prometheus deployment/loki deployment/grafana -n {{ns}}
+    kubectl rollout status deployment/grafana -n {{ns}}
+
+status:
+    kubectl get pods -n {{ns}}
+
+logs component:
+    kubectl logs -f deploy/{{component}} -n {{ns}}
+
+clean:
+    kubectl delete -f manifests/

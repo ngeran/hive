@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+
+    scrape_configs:
+      # Prometheus scraping itself — sanity check that it's alive
+      - job_name: prometheus
+        static_configs:
+          - targets: ["localhost:9090"]
+
+      # Auto-discover any pod in the cluster that's annotated
+      # `prometheus.io/scrape: "true"` — add that annotation to a pod's
+      # metadata and it shows up here automatically, no config edit needed.
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+
+      # Phase 4 will add a goflow2 job here — see 04-netflow's README note.
