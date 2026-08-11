@@ -1,4 +1,4 @@
-# redcell-range
+# HIVE- κυψέλη
 
 A hands-on network security + observability lab running on a local k3s
 Kubernetes cluster. You get an "attacker" toolbox, a deliberately vulnerable
