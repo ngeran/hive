@@ -1,9 +1,4 @@
 import os
-import sys
-
-# THE HACK: This tricks NetBox into thinking the Debug Toolbar is not installed.
-# This prevents the 'function object has no attribute set' error.
-sys.modules['debug_toolbar'] = None
 
 # 1. Database Settings
 DATABASE = {
@@ -24,13 +19,18 @@ REDIS = {
 SECRET_KEY = 'nix-reproducible-secret-key-for-hive-lab-this-key-is-now-long-enough'
 ALLOWED_HOSTS = ['*']
 
-# 4. Lab Mode
-# Keep DEBUG=True so Django serves its own CSS/Images for the lab.
-DEBUG = True
-DEBUG_TOOLBAR_ENABLED = False
+# 4. THE FIX: Production Mode
+# Setting DEBUG = False removes the crashing Debug Toolbar entirely.
+DEBUG = False
 
-# 5. Nix Read-Only Filesystem Fixes
-# We use the 'Cheat Code' volume mounts from the manifest here.
+# 5. Whitenoise Fix
+# This allows NetBox to serve its own CSS/JS even though DEBUG is False.
+# NetBox 4.0 supports injecting middleware via this setting.
+EXTRA_MIDDLEWARE = [
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+]
+
+# 6. Nix Read-Only Filesystem Fixes
 STATIC_ROOT = '/app/netbox/static'
 MEDIA_ROOT = '/app/netbox/media'
 STORAGE_BACKEND = 'django.core.files.storage.FileSystemStorage'

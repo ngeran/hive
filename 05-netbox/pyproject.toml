@@ -9,7 +9,7 @@ dependencies = [
     "psycopg2-binary",
     "redis",
     "requests",
-    "django-debug-toolbar", # Added back so Django boots
+    "django-debug-toolbar",
     "django-filter",
     "django-tables2",
     "django-mptt",
@@ -32,6 +32,9 @@ dependencies = [
     "sentry-sdk",
     "drf-spectacular",
     "drf-spectacular-sidecar",
+    "strawberry-graphql==0.219.2",
+    "strawberry-graphql-django==0.25.0",
+    "graphql-core==3.2.3",
     "jinja2",
     "social-auth-app-django",
     "nh3",
@@ -40,9 +43,7 @@ dependencies = [
     "pycryptodome",
     "svgwrite",
     "tablib",
-    "strawberry-graphql==0.219.2",
-    "strawberry-graphql-django==0.25.0",
-    "graphql-core==3.2.3",
+    "whitenoise",  # THE FIX: Serves CSS/JS when DEBUG is False
 ]
 
 [tool.uv]
