@@ -44,9 +44,11 @@ dependencies = [
     "netaddr==1.2.1",
     "nh3==0.2.17",
     "Pillow==10.3.0",
-    # upstream also enables the [c] extra (psycopg-c C speedups); it has no
-    # usable wheel for the uv lock sandbox, and pure-Python psycopg is fine here
-    "psycopg[pool]==3.1.18",
+    # [binary] is required: pure-Python psycopg dlopens libpq at import time
+    # and a Nix dockerTools image has no system libpq — the psycopg-binary
+    # wheel bundles its own. upstream's extra [c] (psycopg-c) has no usable
+    # wheel for the uv lock sandbox, so it stays off.
+    "psycopg[binary,pool]==3.1.18",
     "PyYAML==6.0.1",
     "requests==2.31.0",
     "social-auth-app-django==5.4.1",

@@ -33,10 +33,26 @@
           workspace = uv2nix.lib.workspace.loadWorkspace { workspaceRoot = ./.; };
           overlay   = workspace.mkPyprojectOverlay { sourcePreference = "wheel"; };
           pythonSet = (pkgs.callPackage pyproject-nix.build.packages {
-            python = pkgs.python311; 
+            python = pkgs.python311;
           }).overrideScope (lib.composeManyExtensions [
             pyproject-build-systems.overlays.default
             overlay
+            # Sdist-only packages with no [build-system] in their pyproject
+            # get built without a backend unless we inject one explicitly.
+            (final: prev: {
+              django-pglocks = prev.django-pglocks.overrideAttrs (old: {
+                nativeBuildInputs = old.nativeBuildInputs or []
+                  ++ final.resolveBuildSystem { setuptools = [ ]; };
+              });
+              sgmllib3k = prev.sgmllib3k.overrideAttrs (old: {
+                nativeBuildInputs = old.nativeBuildInputs or []
+                  ++ final.resolveBuildSystem { setuptools = [ ]; };
+              });
+              promise = prev.promise.overrideAttrs (old: {
+                nativeBuildInputs = old.nativeBuildInputs or []
+                  ++ final.resolveBuildSystem { setuptools = [ ]; };
+              });
+            })
           ]);
           venv = pythonSet.mkVirtualEnv "netbox-env" workspace.deps.default;
         in { inherit pkgs venv; };

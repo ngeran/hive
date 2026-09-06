@@ -32,7 +32,7 @@ deploy: push
     kubectl apply -f manifests/{{variant}}/
     echo "Restarting {{dep}} to pick up new image..."
     kubectl -n {{ns}} rollout restart deployment/{{dep}}
-    kubectl -n {{ns}} rollout status deployment/{{dep}} --timeout=120s
+    kubectl -n {{ns}} rollout status deployment/{{dep}} --timeout=300s
 
 # Tail the application logs
 logs:
