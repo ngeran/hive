@@ -64,13 +64,13 @@
             config = {
               User       = "1000:1000";
               WorkingDir = "/app/netbox"; 
+              # /app must stay on PYTHONPATH: the whitenoise shim lives at
+              # /app/hive_wsgi.py, outside the vendored NetBox tree.
               Env = [
-                "PYTHONPATH=/app/netbox"
+                "PYTHONPATH=/app:/app/netbox"
                 "DJANGO_SETTINGS_MODULE=netbox.settings"
                 "NETBOX_CONFIGURATION=netbox.configuration"
                 "HOME=/tmp"
-                "NB_STATIC_ROOT=/tmp/static"
-                "NB_MEDIA_ROOT=/tmp/media"
               ];
               Cmd = [ 
                 "${venv}/bin/gunicorn" 
@@ -78,7 +78,7 @@
                 "--workers" "3"
                 "--worker-tmp-dir" "/tmp"
                 "--pid" "/tmp/gunicorn.pid"
-                "netbox.wsgi" 
+                "hive_wsgi:application"
               ];
             } // { ExposedPorts = { "8001/tcp" = { }; }; };
           };

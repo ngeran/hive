@@ -21,6 +21,25 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      # /static/ lives in an emptyDir (wiped on every pod start), so
+      # collectstatic must run before gunicorn binds. The Nix image has no
+      # fixed interpreter path, hence the store glob.
+      initContainers:
+      - name: collectstatic
+        image: localhost:5000/hive-netbox:latest
+        imagePullPolicy: Always
+        command: ["/bin/bash", "-c"]
+        args:
+          - |
+            set -euo pipefail
+            PY="$(ls -d /nix/store/*-netbox-env/bin/python | head -n1)"
+            cd /app/netbox
+            "$PY" manage.py collectstatic --noinput
+        volumeMounts:
+        - name: static-files
+          mountPath: /app/netbox/static
       containers:
       - name: netbox
         image: localhost:5000/hive-netbox:latest

@@ -1,49 +1,60 @@
+# Dependency set for the NetBox image.
+#
+# The pins below mirror app/requirements.txt (NetBox 4.0.0's own locked
+# requirements) verbatim — do NOT hand-bump individual packages. Every past
+# crash here came from drift: an unpinned django-debug-toolbar resolved to
+# 6.x, whose get_show_toolbar(async_mode) signature broke NetBox 4.0's
+# unconditionally-loaded strawberry middleware on every request
+# (TypeError: get_show_toolbar() missing 1 required positional argument).
+#
+# whitenoise is the only addition: it serves /static/ with DEBUG = False.
+# NetBox 4.0's settings.py reads no middleware settings from
+# configuration.py, so whitenoise is wired in app/hive_wsgi.py instead.
+
 [project]
 name = "hive-netbox"
 version = "4.0.0"
 description = "NetBox for HIVE lab"
 requires-python = ">=3.11,<3.12"
 dependencies = [
-    "Django~=5.0.0",
-    "gunicorn",
-    "psycopg2-binary",
-    "redis",
-    "requests",
-    "django-debug-toolbar",
-    "django-filter",
-    "django-tables2",
-    "django-mptt",
-    "django-taggit",
-    "django-timezone-field",
-    "django-prometheus",
-    "django-rq",
-    "django-cors-headers",
-    "django-redis",
-    "django-htmx",
-    "django-rich",
-    "django-phonenumber-field",
-    "phonenumbers",
-    "netaddr",
-    "pyyaml",
-    "Pillow",
-    "bleach",
-    "markdown",
-    "mkdocs",
-    "sentry-sdk",
-    "drf-spectacular",
-    "drf-spectacular-sidecar",
-    "strawberry-graphql==0.219.2",
-    "strawberry-graphql-django==0.25.0",
-    "graphql-core==3.2.3",
-    "jinja2",
-    "social-auth-app-django",
-    "nh3",
-    "feedparser",
-    "django-pglocks",
-    "pycryptodome",
-    "svgwrite",
-    "tablib",
-    "whitenoise",  # THE FIX: Serves CSS/JS when DEBUG is False
+    "Django==5.0.5",
+    "django-cors-headers==4.3.1",
+    "django-debug-toolbar==4.3.0",
+    "django-filter==24.2",
+    "django-htmx==1.17.3",
+    "django-graphiql-debug-toolbar==0.2.0",
+    "django-mptt==0.16.0",
+    "django-pglocks==1.0.4",
+    "django-prometheus==2.3.1",
+    "django-redis==5.4.0",
+    "django-rich==1.8.0",
+    "django-rq==2.10.2",
+    "django-taggit==5.0.1",
+    "django-tables2==2.7.0",
+    "django-timezone-field==6.1.0",
+    "djangorestframework==3.15.1",
+    "drf-spectacular==0.27.2",
+    "drf-spectacular-sidecar==2024.5.1",
+    "feedparser==6.0.11",
+    "gunicorn==22.0.0",
+    "Jinja2==3.1.4",
+    "Markdown==3.6",
+    "mkdocs-material==9.5.21",
+    "mkdocstrings[python-legacy]==0.25.1",
+    "netaddr==1.2.1",
+    "nh3==0.2.17",
+    "Pillow==10.3.0",
+    # upstream also enables the [c] extra (psycopg-c C speedups); it has no
+    # usable wheel for the uv lock sandbox, and pure-Python psycopg is fine here
+    "psycopg[pool]==3.1.18",
+    "PyYAML==6.0.1",
+    "requests==2.31.0",
+    "social-auth-app-django==5.4.1",
+    "social-auth-core==4.5.4",
+    "strawberry-graphql==0.227.3",
+    "strawberry-graphql-django==0.39.2",
+    "svgwrite==1.4.3",
+    "tablib==3.6.1",
+    "tzdata==2024.1",
+    "whitenoise==6.7.0",
 ]
-
-[tool.uv]
