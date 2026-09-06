@@ -16,10 +16,12 @@ REDIS = {
 SECRET_KEY = 'nix-reproducible-secret-key-for-hive-lab-this-key-is-now-long-enough'
 ALLOWED_HOSTS = ['*']
 
-# PRODUCTION MODE: This disables the crashing Debug Toolbar logic
-DEBUG = False
+# ENABLE DEBUG but DISABLE TOOLBAR
+# This allows the app to boot and serve files without the crashing middleware
+DEBUG = True
+DEBUG_TOOLBAR_ENABLED = False
 
-# NIX PERMISSION FIXES
+# NIX PERMISSION FIXES (Using the volume mounts from our cheat-code)
 STATIC_ROOT = '/app/netbox/static'
 MEDIA_ROOT = '/app/netbox/media'
 STORAGE_BACKEND = 'django.core.files.storage.FileSystemStorage'
