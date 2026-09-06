@@ -1,0 +1,133 @@
+# Host/LAN access to the ten cRPDs — one NodePort Service per node.
+#
+# Why this exists: the clabernetes CRD only exposes None/ClusterIP/Headless/
+# LoadBalancer (no NodePort), and k3s's klipper-lb would fight the host over
+# ports 22/80/443. These Services are plain NodePorts we own, selecting the
+# launcher pods by their c9s.run/topologyNode label, forwarding only the two
+# ports that matter. Stable, predictable, no port-forward juggling.
+#
+#   ssh      root@10.0.0.29 -p 3100X     (password: manolis1)
+#   netconf  10.0.0.29:3200X             (PyEZ/JSNAPy from the host)
+#
+# where X: p1=1 p2=2 p3=3 p4=4 pe1=5 pe2=6 rr1=7 rr2=8 ce1=9 ce2=10
+# (`just ports` prints the current table.)
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: p1-host
+  namespace: topology
+spec:
+  type: NodePort
+  selector: { c9s.run/topologyNode: p1 }
+  ports:
+    - { name: ssh,     port: 22,  targetPort: 60001, nodePort: 31001 }
+    - { name: netconf, port: 830, targetPort: 60005, nodePort: 32001 }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: p2-host
+  namespace: topology
+spec:
+  type: NodePort
+  selector: { c9s.run/topologyNode: p2 }
+  ports:
+    - { name: ssh,     port: 22,  targetPort: 60001, nodePort: 31002 }
+    - { name: netconf, port: 830, targetPort: 60005, nodePort: 32002 }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: p3-host
+  namespace: topology
+spec:
+  type: NodePort
+  selector: { c9s.run/topologyNode: p3 }
+  ports:
+    - { name: ssh,     port: 22,  targetPort: 60001, nodePort: 31003 }
+    - { name: netconf, port: 830, targetPort: 60005, nodePort: 32003 }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: p4-host
+  namespace: topology
+spec:
+  type: NodePort
+  selector: { c9s.run/topologyNode: p4 }
+  ports:
+    - { name: ssh,     port: 22,  targetPort: 60001, nodePort: 31004 }
+    - { name: netconf, port: 830, targetPort: 60005, nodePort: 32004 }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pe1-host
+  namespace: topology
+spec:
+  type: NodePort
+  selector: { c9s.run/topologyNode: pe1 }
+  ports:
+    - { name: ssh,     port: 22,  targetPort: 60001, nodePort: 31005 }
+    - { name: netconf, port: 830, targetPort: 60005, nodePort: 32005 }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pe2-host
+  namespace: topology
+spec:
+  type: NodePort
+  selector: { c9s.run/topologyNode: pe2 }
+  ports:
+    - { name: ssh,     port: 22,  targetPort: 60001, nodePort: 31006 }
+    - { name: netconf, port: 830, targetPort: 60005, nodePort: 32006 }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rr1-host
+  namespace: topology
+spec:
+  type: NodePort
+  selector: { c9s.run/topologyNode: rr1 }
+  ports:
+    - { name: ssh,     port: 22,  targetPort: 60001, nodePort: 31007 }
+    - { name: netconf, port: 830, targetPort: 60005, nodePort: 32007 }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rr2-host
+  namespace: topology
+spec:
+  type: NodePort
+  selector: { c9s.run/topologyNode: rr2 }
+  ports:
+    - { name: ssh,     port: 22,  targetPort: 60001, nodePort: 31008 }
+    - { name: netconf, port: 830, targetPort: 60005, nodePort: 32008 }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ce1-host
+  namespace: topology
+spec:
+  type: NodePort
+  selector: { c9s.run/topologyNode: ce1 }
+  ports:
+    - { name: ssh,     port: 22,  targetPort: 60001, nodePort: 31009 }
+    - { name: netconf, port: 830, targetPort: 60005, nodePort: 32009 }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ce2-host
+  namespace: topology
+spec:
+  type: NodePort
+  selector: { c9s.run/topologyNode: ce2 }
+  ports:
+    - { name: ssh,     port: 22,  targetPort: 60001, nodePort: 31010 }
+    - { name: netconf, port: 830, targetPort: 60005, nodePort: 32010 }

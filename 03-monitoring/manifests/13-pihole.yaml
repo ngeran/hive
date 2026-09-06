@@ -1,0 +1,68 @@
+# Pi-hole — DNS sinkhole for the lab (user-requested observability component).
+#
+# Scope note: DNS (port 53) is ClusterIP-only — k3s NodePort can't bind 53
+# (allowed range 30000-32767) — so the sinkhole serves pods that point their
+# DNS at pihole.monitoring.svc.cluster.local. The admin web UI is LAN-reachable
+# on NodePort 30380, mirroring how Grafana is exposed (30300).
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pihole
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pihole
+  template:
+    metadata:
+      labels:
+        app: pihole
+    spec:
+      containers:
+        - name: pihole
+          image: pihole/pihole:latest
+          imagePullPolicy: Always
+          env:
+            - name: TZ
+              value: "Europe/Athens"
+            - name: WEBPASSWORD
+              value: "redcell-admin"
+            - name: FTLCONF_dns_listening_mode
+              value: "all"
+          ports:
+            - containerPort: 53
+              protocol: UDP
+            - containerPort: 53
+              protocol: TCP
+            - containerPort: 80
+          securityContext:
+            capabilities:
+              add: ["NET_ADMIN", "NET_RAW"]   # pihole-FTL needs these
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits: { cpu: "500m", memory: "512Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pihole
+  namespace: monitoring
+spec:
+  selector:
+    app: pihole
+  ports:
+    - name: dns-udp
+      port: 53
+      targetPort: 53
+      protocol: UDP
+    - name: dns-tcp
+      port: 53
+      targetPort: 53
+      protocol: TCP
+    - name: web
+      port: 80
+      targetPort: 80
+      nodePort: 30380
+  type: NodePort

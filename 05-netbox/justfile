@@ -1,0 +1,53 @@
+# =========================================================================
+# HIVE Phase 05 — NetBox (build → push → deploy)
+# =========================================================================
+set shell := ["bash", "-c"]
+
+# ── VARIABLES ────────────────────────────────────────────────────────────
+variant  := "fastapi"
+image    := "hive-netbox"
+tag      := "latest"
+registry := "localhost:5000"
+ns       := "netbox"
+dep      := "netbox"
+# This is the port you will type in your browser
+port     := "8001" 
+
+# Build the Nix image (Reproducible OCI, no Dockerfile)
+build:
+    nix build .#image --out-link result
+
+# Push to the local HIVE registry
+push: build
+    #!/usr/bin/env bash
+    set -euo pipefail
+    skopeo copy --insecure-policy --dest-tls-verify=false \
+      docker-archive:"$(readlink -f result)" \
+      docker://"{{registry}}/{{image}}:{{tag}}"
+
+# Deploy to K3s and wait for rollout
+deploy: push
+    #!/usr/bin/env bash
+    set -euo pipefail
+    kubectl apply -f manifests/{{variant}}/
+    echo "Restarting {{dep}} to pick up new image..."
+    kubectl -n {{ns}} rollout restart deployment/{{dep}}
+    kubectl -n {{ns}} rollout status deployment/{{dep}} --timeout=120s
+
+# Tail the application logs
+logs:
+    kubectl -n {{ns}} logs deploy/{{dep}} -f
+
+# THE FIX: Map local port 8001 to the Service port 80
+forward:
+    echo "🚀 NetBox is starting at http://localhost:{{port}}"
+    echo "Log in with the admin user you created earlier."
+    kubectl -n {{ns}} port-forward svc/{{dep}} {{port}}:80
+
+# Drop into the Nix development shell
+shell:
+    nix develop
+
+# Clean up local build artifacts
+clean:
+    rm -f result

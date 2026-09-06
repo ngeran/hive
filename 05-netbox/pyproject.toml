@@ -1,0 +1,48 @@
+[project]
+name = "hive-netbox"
+version = "4.0.0"
+description = "NetBox for HIVE lab"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "Django~=5.0.0",
+    "gunicorn",
+    "psycopg2-binary",
+    "redis",
+    "requests",
+    "django-debug-toolbar",
+    "django-filter",
+    "django-tables2",
+    "django-mptt",
+    "django-taggit",
+    "django-timezone-field",
+    "django-prometheus",
+    "django-rq",
+    "django-cors-headers",
+    "django-redis",
+    "django-htmx",
+    "django-rich",
+    "django-phonenumber-field",
+    "phonenumbers",
+    "netaddr",
+    "pyyaml",
+    "Pillow",
+    "bleach",
+    "markdown",
+    "mkdocs",
+    "sentry-sdk",
+    "drf-spectacular",
+    "drf-spectacular-sidecar",
+    "jinja2",
+    "social-auth-app-django",
+    "nh3",
+    "feedparser",
+    "django-pglocks",
+    "pycryptodome",
+    "svgwrite",
+    "tablib",
+    "strawberry-graphql==0.219.2",
+    "strawberry-graphql-django==0.25.0",
+    "graphql-core==3.2.3",
+]
+
+[tool.uv]

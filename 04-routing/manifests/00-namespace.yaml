@@ -1,0 +1,11 @@
+# The "topology" namespace hosts the clabernetes Topology CR and the privileged
+# launcher pods (one per cRPD node). Launcher pods run privileged/root by design
+# (containerlab creates netns/bridges/VXLAN inside the pod) — a deliberate
+# departure from the rest of HIVE's least-privilege stance, confined here.
+# k3s permits privileged pods by default, so no special label is required.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: topology
+  labels:
+    purpose: security-lab

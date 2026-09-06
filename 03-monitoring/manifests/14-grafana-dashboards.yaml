@@ -1,0 +1,102 @@
+# Grafana dashboard provisioning — the FIRST real dashboard in this lab.
+# (README/VALIDATION always described a provisioned dashboard; until now the
+# Grafana deployment mounted only datasources. This closes that drift.)
+#
+# Two ConfigMaps: the provisioning provider (mounted at
+# /etc/grafana/provisioning/dashboards) and the dashboard JSON (mounted at
+# /var/lib/grafana/dashboards, where the provider points).
+# 11-grafana-deployment.yaml mounts both.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-provider
+  namespace: monitoring
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: redcell
+        orgId: 1
+        folder: Redcell Range
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 30
+        options:
+          path: /var/lib/grafana/dashboards
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-mpls-core
+  namespace: monitoring
+data:
+  mpls-core.json: |
+    {
+      "title": "MPLS Core — Routing Health",
+      "uid": "redcell-mpls-core",
+      "schemaVersion": 39,
+      "refresh": "30s",
+      "time": { "from": "now-1h", "to": "now" },
+      "panels": [
+        {
+          "id": 1,
+          "type": "stat",
+          "title": "Fabric nodes reachable",
+          "datasource": { "type": "prometheus", "uid": "${DS_PROM}" },
+          "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+          "targets": [ { "expr": "sum(junos_node_reachable)" } ],
+          "fieldConfig": { "defaults": {
+              "thresholds": { "mode": "absolute",
+                "steps": [ { "color": "red", "value": null },
+                           { "color": "yellow", "value": 8 },
+                           { "color": "green", "value": 10 } ] } } }
+        },
+        {
+          "id": 2,
+          "type": "stat",
+          "title": "BGP sessions Established",
+          "datasource": { "type": "prometheus", "uid": "${DS_PROM}" },
+          "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+          "targets": [ { "expr": "sum(junos_bgp_peer_up)" } ]
+        },
+        {
+          "id": 3,
+          "type": "stat",
+          "title": "OSPF adjacencies Full",
+          "datasource": { "type": "prometheus", "uid": "${DS_PROM}" },
+          "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+          "targets": [ { "expr": "sum(junos_ospf_neighbor_full)" } ]
+        },
+        {
+          "id": 4,
+          "type": "stat",
+          "title": "LDP sessions Operational",
+          "datasource": { "type": "prometheus", "uid": "${DS_PROM}" },
+          "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+          "targets": [ { "expr": "sum(junos_ldp_session_up)" } ]
+        },
+        {
+          "id": 5,
+          "type": "timeseries",
+          "title": "Route counts by node",
+          "datasource": { "type": "prometheus", "uid": "${DS_PROM}" },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+          "targets": [ { "expr": "junos_route_count",
+                         "legendFormat": "{{node}} {{table}}" } ]
+        },
+        {
+          "id": 6,
+          "type": "timeseries",
+          "title": "Node reachability (NETCONF)",
+          "datasource": { "type": "prometheus", "uid": "${DS_PROM}" },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+          "targets": [ { "expr": "junos_node_reachable",
+                         "legendFormat": "{{node}}" } ]
+        }
+      ],
+      "templating": { "list": [
+        { "name": "DS_PROM", "type": "datasource",
+          "query": "prometheus", "current": { "text": "Prometheus" } }
+      ] }
+    }

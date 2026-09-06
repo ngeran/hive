@@ -1,0 +1,32 @@
+# SMOKE TEST — 2 cRPD nodes, 1 link. Hypothesis v3: the Topology's
+# deployment.filesFromConfigMap map is keyed by NODE NAME (like
+# deployment.resources), so each node gets its own file mounts.
+apiVersion: c9s.run/v1alpha1
+kind: Topology
+metadata:
+  name: smoke
+  namespace: topology
+spec:
+  naming: prefixed
+  expose:
+    exposeType: ClusterIP
+  deployment:
+    filesFromConfigMap:
+      p1:
+        - configMapName: crpd-smoke-cfg
+          filePath: /launchfiles
+      p2:
+        - configMapName: crpd-smoke-cfg
+          filePath: /launchfiles
+  definition:
+    containerlab: |
+      name: smoke
+      topology:
+        defaults:
+          kind: juniper_crpd
+          image: localhost:5000/crpd:25.4R1-S2.3
+        nodes:
+          p1: { startup-config: /launchfiles/p1.conf }
+          p2: { startup-config: /launchfiles/p2.conf }
+        links:
+          - endpoints: ["p1:eth1", "p2:eth1"]

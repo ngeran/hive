@@ -1,0 +1,98 @@
+# MINIMAL cRPD startup configs — bare point-to-point fabric for automation.
+#
+# Scope (user decision): Clabernetes provides the 10 nodes + 14 p2p links only
+# (ethN wiring per the link order in 02-topology.yaml). All routing config
+# (interfaces/IGP/MPLS/BGP/VPN) is pushed by the user's automation (PyEZ /
+# JSNAPy over NETCONF) — these configs carry ONLY identity + management services.
+#
+# Access from the cluster:   <node>.topology.svc.cluster.local :830 (NETCONF)
+#                            root / manolis1
+# From the host:             cd 04-routing && just ssh p1
+#
+# NOTE: root-authentication MUST be set here — the containerlab "clab123"
+# default only applies when a node has no custom startup-config. The hash below
+# is manolis1 (openssl passwd -1 -salt MnLs2026).
+#
+# Interface map (ethN = Nth link of that node, per links order — 17 links):
+#   p1 : eth1↔p2   eth2↔p3   eth3↔p4   eth4↔pe1  eth5↔rr1
+#   p2 : eth1↔p1   eth2↔p3   eth3↔p4   eth4↔pe1  eth5↔rr1
+#   p3 : eth1↔p1   eth2↔p2   eth3↔p4   eth4↔pe2  eth5↔rr2
+#   p4 : eth1↔p1   eth2↔p2   eth3↔p3   eth4↔pe2  eth5↔rr2
+#   pe1: eth1↔p1   eth2↔p2   eth3↔ce1
+#   pe2: eth1↔p3   eth2↔p4   eth3↔ce2
+#   rr1: eth1↔p1   eth2↔p2   eth3↔rr2
+#   rr2: eth1↔p3   eth2↔p4   eth3↔rr1
+#   ce1: eth1↔pe1
+#   ce2: eth1↔pe2
+#
+# HOST REQUIREMENT: the mpls_router kernel module must be loaded on the host
+# (sudo modprobe mpls_router mpls_iptunnel; persist via boot.kernelModules) or
+# cRPD's interface init fails and the data interfaces (eth1+) never register.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: crpd-configs
+  namespace: topology
+data:
+  p1.conf: |
+    system {
+        host-name p1;
+        # P-1's root password is manolis1 (per-lab decision; the other nine
+        # nodes keep clab123) — restor8 inventory maps it to auth_ref lab-auth.
+        root-authentication { encrypted-password "$1$0/2M6hXy$AXLWZTRaOpB1aGpV4hEDt0"; }
+        services { ssh { root-login allow; } netconf { ssh; } }
+    }
+  p2.conf: |
+    system {
+        host-name p2;
+        root-authentication { encrypted-password "$1$0/2M6hXy$AXLWZTRaOpB1aGpV4hEDt0"; }
+        services { ssh { root-login allow; } netconf { ssh; } }
+    }
+  p3.conf: |
+    system {
+        host-name p3;
+        root-authentication { encrypted-password "$1$0/2M6hXy$AXLWZTRaOpB1aGpV4hEDt0"; }
+        services { ssh { root-login allow; } netconf { ssh; } }
+    }
+  p4.conf: |
+    system {
+        host-name p4;
+        root-authentication { encrypted-password "$1$0/2M6hXy$AXLWZTRaOpB1aGpV4hEDt0"; }
+        services { ssh { root-login allow; } netconf { ssh; } }
+    }
+  pe1.conf: |
+    system {
+        host-name pe1;
+        root-authentication { encrypted-password "$1$0/2M6hXy$AXLWZTRaOpB1aGpV4hEDt0"; }
+        services { ssh { root-login allow; } netconf { ssh; } }
+    }
+  pe2.conf: |
+    system {
+        host-name pe2;
+        root-authentication { encrypted-password "$1$0/2M6hXy$AXLWZTRaOpB1aGpV4hEDt0"; }
+        services { ssh { root-login allow; } netconf { ssh; } }
+    }
+  rr1.conf: |
+    system {
+        host-name rr1;
+        root-authentication { encrypted-password "$1$0/2M6hXy$AXLWZTRaOpB1aGpV4hEDt0"; }
+        services { ssh { root-login allow; } netconf { ssh; } }
+    }
+  rr2.conf: |
+    system {
+        host-name rr2;
+        root-authentication { encrypted-password "$1$0/2M6hXy$AXLWZTRaOpB1aGpV4hEDt0"; }
+        services { ssh { root-login allow; } netconf { ssh; } }
+    }
+  ce1.conf: |
+    system {
+        host-name ce1;
+        root-authentication { encrypted-password "$1$0/2M6hXy$AXLWZTRaOpB1aGpV4hEDt0"; }
+        services { ssh { root-login allow; } netconf { ssh; } }
+    }
+  ce2.conf: |
+    system {
+        host-name ce2;
+        root-authentication { encrypted-password "$1$0/2M6hXy$AXLWZTRaOpB1aGpV4hEDt0"; }
+        services { ssh { root-login allow; } netconf { ssh; } }
+    }

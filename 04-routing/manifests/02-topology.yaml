@@ -1,0 +1,82 @@
+# The full 10-node MPLS core, 17 links: P1-P4 full mesh; PE1/PE2 dual-homed
+# (PE1→P1/P2, PE2→P3/P4); RR1/RR2 dual-homed + interconnect
+# (RR1→P1/P2/RR2, RR2→P3/P4/RR1); CE1→PE1, CE2→PE2.
+# The links ORDER defines each node's ethN (see interface map in
+# 01-crpd-configs.yaml).
+apiVersion: c9s.run/v1alpha1
+kind: Topology
+metadata:
+  name: mpls-core
+  namespace: topology
+spec:
+  naming: prefixed
+  expose:
+    exposeType: ClusterIP        # per-node Services (p1.topology.svc... etc) for
+                                 # in-cluster automation. Host/LAN access is via
+                                 # the NodePort Services in 03-host-access.yaml.
+  # Config delivery — the map is keyed by NODE NAME (verified against
+  # clabernetes v0.7.1 render.go: FilesFromConfigMap[nodeName] lands on each
+  # Node CR and mounts into the launcher pod). Omitting configMapPath mounts
+  # the whole ConfigMap, so every node sees all 10 configs at /launchfiles
+  # and loads its own via startup-config.
+  deployment:
+    # Persistence: each node's docker dir (and with it the nested cRPD's
+    # filesystem + committed Junos config) lives on a per-node PVC, so
+    # NETCONF-pushed config survives container restarts, pod deletions and
+    # host reboots. Trade-off: rewiring the topology now pairs with `just clean`
+    # to avoid stale state. Without this, every restart resets to the
+    # ConfigMap startup-config.
+    persistence:
+      enabled: true
+      claimSize: 2Gi
+    filesFromConfigMap:
+      p1:  [{ configMapName: crpd-configs, filePath: /launchfiles }]
+      p2:  [{ configMapName: crpd-configs, filePath: /launchfiles }]
+      p3:  [{ configMapName: crpd-configs, filePath: /launchfiles }]
+      p4:  [{ configMapName: crpd-configs, filePath: /launchfiles }]
+      pe1: [{ configMapName: crpd-configs, filePath: /launchfiles }]
+      pe2: [{ configMapName: crpd-configs, filePath: /launchfiles }]
+      rr1: [{ configMapName: crpd-configs, filePath: /launchfiles }]
+      rr2: [{ configMapName: crpd-configs, filePath: /launchfiles }]
+      ce1: [{ configMapName: crpd-configs, filePath: /launchfiles }]
+      ce2: [{ configMapName: crpd-configs, filePath: /launchfiles }]
+  definition:
+    containerlab: |
+      name: mpls-core
+      topology:
+        defaults:
+          kind: juniper_crpd
+          image: localhost:5000/crpd:25.4R1-S2.3
+        nodes:
+          p1:  { startup-config: /launchfiles/p1.conf }
+          p2:  { startup-config: /launchfiles/p2.conf }
+          p3:  { startup-config: /launchfiles/p3.conf }
+          p4:  { startup-config: /launchfiles/p4.conf }
+          pe1: { startup-config: /launchfiles/pe1.conf }
+          pe2: { startup-config: /launchfiles/pe2.conf }
+          rr1: { startup-config: /launchfiles/rr1.conf }
+          rr2: { startup-config: /launchfiles/rr2.conf }
+          ce1: { startup-config: /launchfiles/ce1.conf }
+          ce2: { startup-config: /launchfiles/ce2.conf }
+        links:
+          # --- P-core full mesh (6) ---
+          - endpoints: ["p1:eth1", "p2:eth1"]
+          - endpoints: ["p1:eth2", "p3:eth1"]
+          - endpoints: ["p1:eth3", "p4:eth1"]
+          - endpoints: ["p2:eth2", "p3:eth2"]
+          - endpoints: ["p2:eth3", "p4:eth2"]
+          - endpoints: ["p3:eth3", "p4:eth3"]
+          # --- PE dual-homing into the core (4) ---
+          - endpoints: ["pe1:eth1", "p1:eth4"]
+          - endpoints: ["pe1:eth2", "p2:eth4"]
+          - endpoints: ["pe2:eth1", "p3:eth4"]
+          - endpoints: ["pe2:eth2", "p4:eth4"]
+          # --- Route reflectors, dual-homed + interconnect (5) ---
+          - endpoints: ["rr1:eth1", "p1:eth5"]
+          - endpoints: ["rr1:eth2", "p2:eth5"]
+          - endpoints: ["rr2:eth1", "p3:eth5"]
+          - endpoints: ["rr2:eth2", "p4:eth5"]
+          - endpoints: ["rr1:eth3", "rr2:eth3"]
+          # --- Customer edges (2) ---
+          - endpoints: ["ce1:eth1", "pe1:eth3"]
+          - endpoints: ["ce2:eth1", "pe2:eth3"]

@@ -1,0 +1,164 @@
+# junos-netconf-exporter — NETCONF-driven telemetry for the cRPD fabric.
+#
+# Why NETCONF: cRPD (the routing daemon rpd decoupled from the Junos mgmt
+# plane) exposes NETCONF/SSH only — no gNMI/JTI. So this exporter polls the
+# routers with PyEZ and re-exposes the state as Prometheus metrics. Prometheus
+# then auto-scrapes it via the prometheus.io/scrape annotation (the same
+# pattern Phase 3 uses for pod discovery — no Prometheus config edit needed).
+#
+# Image note: reuses the Phase-1 redcell-range image (localhost:5000), which
+# carries python3 + junos-eznc (PyEZ) after the flake.nix update — no separate
+# image build. Rebuild+push it first: cd 01-workspace && just build && just push
+# (remember: commit flake.nix changes before nix sees them).
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: netconf-exporter-script
+  namespace: monitoring
+data:
+  netconf_exporter.py: |
+    #!/usr/bin/env python3
+    """Poll the cRPD fabric over NETCONF (PyEZ) and expose Prometheus metrics."""
+    import threading
+    import time
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+
+    from jnpr.junos import Device
+
+    NODES = ["p1", "p2", "p3", "p4", "pe1", "pe2", "rr1", "rr2", "ce1", "ce2"]
+    NS = "topology"
+    USER = "root"
+    PASSWORD = "clab123"          # containerlab crpd kind default
+    POLL_INTERVAL = 30
+    LISTEN_PORT = 9326
+
+    _lock = threading.Lock()
+    _samples = []                 # list of "name{labels} value" strings
+
+    def _bgp(dev, node, out):
+        info = dev.rpc.get_bgp_summary_information()
+        for peer in info.iter("bgp-peer"):
+            addr = (peer.findtext("peer-address") or "").split("+")[0]
+            state = peer.findtext("peer-state") or ""
+            if not addr:
+                continue
+            out.append('junos_bgp_peer_up{node="%s",peer="%s"} %d'
+                       % (node, addr, 1 if state == "Established" else 0))
+
+    def _ospf(dev, node, out):
+        info = dev.rpc.get_ospf_neighbor_information()
+        for nbr in info.iter("ospf-neighbor"):
+            addr = nbr.findtext("neighbor-address") or ""
+            state = nbr.findtext("ospf-neighbor-state") or ""
+            if not addr:
+                continue
+            out.append('junos_ospf_neighbor_full{node="%s",neighbor="%s"} %d'
+                       % (node, addr, 1 if state == "Full" else 0))
+
+    def _ldp(dev, node, out):
+        info = dev.rpc.get_ldp_session_information()
+        for sess in info.iter("ldp-session"):
+            addr = sess.findtext("ldp-neighbor-address") or ""
+            state = sess.findtext("ldp-session-state") or ""
+            if not addr:
+                continue
+            out.append('junos_ldp_session_up{node="%s",peer="%s"} %d'
+                       % (node, addr, 1 if state == "Operational" else 0))
+
+    def _routes(dev, node, out):
+        info = dev.rpc.get_route_summary_information()
+        for tbl in info.iter("route-table"):
+            name = (tbl.findtext("table-name") or "").strip()
+            count = tbl.findtext("total-route-count") or tbl.findtext("routes") or "0"
+            try:
+                count = int(count)
+            except ValueError:
+                continue
+            if name:
+                out.append('junos_route_count{node="%s",table="%s"} %d'
+                           % (node, name, count))
+
+    POLLERS = (_routes, _bgp, _ospf, _ldp)
+
+    def scrape_node(node):
+        out = []
+        try:
+            with Device(host="%s.%s.svc.cluster.local" % (node, NS),
+                        user=USER, password=PASSWORD, port=830,
+                        gather_facts=False) as dev:
+                for poller in POLLERS:
+                    try:
+                        poller(dev, node, out)
+                    except Exception:
+                        pass                # protocol not configured on this node
+            out.append('junos_node_reachable{node="%s"} 1' % node)
+        except Exception:
+            out.append('junos_node_reachable{node="%s"} 0' % node)
+        return out
+
+    def poll_forever():
+        while True:
+            fresh = []
+            for node in NODES:
+                fresh.extend(scrape_node(node))
+            with _lock:
+                _samples[:] = fresh
+            time.sleep(POLL_INTERVAL)
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path != "/metrics":
+                self.send_response(404)
+                self.end_headers()
+                return
+            with _lock:
+                body = ("\n".join(_samples) + "\n").encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; version=0.0.4")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    if __name__ == "__main__":
+        threading.Thread(target=poll_forever, daemon=True).start()
+        HTTPServer(("0.0.0.0", LISTEN_PORT), Handler).serve_forever()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: junos-netconf-exporter
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: junos-netconf-exporter
+  template:
+    metadata:
+      labels:
+        app: junos-netconf-exporter
+      annotations:
+        prometheus.io/scrape: "true"     # auto-discovered by the existing
+        prometheus.io/port: "9326"       # kubernetes-pods Prometheus job
+    spec:
+      containers:
+        - name: exporter
+          image: localhost:5000/redcell-range:latest
+          imagePullPolicy: Always
+          command: ["python3", "/exporter/netconf_exporter.py"]
+          ports:
+            - containerPort: 9326
+          volumeMounts:
+            - name: script
+              mountPath: /exporter
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits: { cpu: "500m", memory: "512Mi" }
+      volumes:
+        - name: script
+          configMap:
+            name: netconf-exporter-script

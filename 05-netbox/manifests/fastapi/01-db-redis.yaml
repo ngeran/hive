@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: netbox-db
+  namespace: netbox
+spec:
+  ports: [{ port: 5432 }]
+  selector: { app: netbox-db }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: netbox-db
+  namespace: netbox
+spec:
+  selector: { matchLabels: { app: netbox-db } }
+  template:
+    metadata: { labels: { app: netbox-db } }
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        env:
+        - name: POSTGRES_DB
+          value: netbox
+        - name: POSTGRES_USER
+          value: netbox
+        - name: POSTGRES_PASSWORD
+          value: netboxpassword
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: netbox-redis
+  namespace: netbox
+spec:
+  ports: [{ port: 6379 }]
+  selector: { app: netbox-redis }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: netbox-redis
+  namespace: netbox
+spec:
+  selector: { matchLabels: { app: netbox-redis } }
+  template:
+    metadata: { labels: { app: netbox-redis } }
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine

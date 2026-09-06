@@ -1,0 +1,40 @@
+# Phase B smoke configs — delivered into launcher pods via filesFromConfigMap,
+# then each node's `startup-config` reads its own file (containerlab injects it
+# into the nested cRPD container as /config/juniper.conf). Observable signal:
+# host-name + a lo0 address prove both system & interface config applied.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: crpd-smoke-cfg
+  namespace: topology
+data:
+  p1.conf: |
+    system {
+        host-name sm-p1;
+        services {
+            ssh;
+            netconf { ssh; }
+        }
+    }
+    interfaces {
+        lo0 {
+            unit 0 {
+                family inet { address 10.255.0.1/32; }
+            }
+        }
+    }
+  p2.conf: |
+    system {
+        host-name sm-p2;
+        services {
+            ssh;
+            netconf { ssh; }
+        }
+    }
+    interfaces {
+        lo0 {
+            unit 0 {
+                family inet { address 10.255.0.2/32; }
+            }
+        }
+    }

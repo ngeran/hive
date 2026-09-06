@@ -1,0 +1,68 @@
+# FastAPI service Deployment (variant = "fastapi").
+# image + imagePullPolicy match the justfile push target (localhost:5000).
+# Always is required: the tag is fixed (:latest) and re-pushed, so Always
+# forces k3s to fetch the newest digest each rollout.
+#
+# Safe-by-default: non-root (UID 1000, matches flake.nix config.User), read-only
+# root fs (emptyDir /tmp for temp writes), all capabilities dropped, no privilege
+# escalation, seccomp=RuntimeDefault, resource limits, and /healthz probes.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pyapp
+  namespace: default
+  labels:
+    app: pyapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pyapp
+  template:
+    metadata:
+      labels:
+        app: pyapp
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: pyapp
+          image: localhost:5000/pyapp:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            failureThreshold: 3
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 2
+            periodSeconds: 10
+            failureThreshold: 3
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
