@@ -9,7 +9,6 @@ dependencies = [
     "psycopg2-binary",
     "redis",
     "requests",
-    "django-debug-toolbar",
     "django-filter",
     "django-tables2",
     "django-mptt",
