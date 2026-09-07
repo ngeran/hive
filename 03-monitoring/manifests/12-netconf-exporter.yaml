@@ -28,8 +28,8 @@ data:
 
     NODES = ["p1", "p2", "p3", "p4", "pe1", "pe2", "rr1", "rr2", "ce1", "ce2"]
     NS = "topology"
-    USER = "root"
-    PASSWORD = "clab123"          # containerlab crpd kind default
+    USER = "admin"
+    PASSWORD = "manolis1"        # root was rotated 2026-09-06; admin works
     POLL_INTERVAL = 30
     LISTEN_PORT = 9326
 
