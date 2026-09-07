@@ -1,0 +1,17 @@
+# Every fabric node must answer `show system information` with one of the
+# ten expected hostnames (P-1..P-4, PE-1/PE-2, RR-1/RR-2, lowercase ce1/ce2).
+#
+# jsnapy operand rules learned the hard way (see tests/README.md):
+# - operands are NOT YAML — jsnapy splits `xpath, operand` itself and does
+#   NOT strip quotes, so quoted patterns silently include the quote chars;
+#   never quote the operand;
+# - therefore inline regex flags (?i) land at "position 1" and error — use
+#   exact names instead of case-insensitive matching.
+test_hostname_set:
+  - command: show system information
+  - item:
+      xpath: /system-information
+      tests:
+        - regex: host-name, ^(P-1|P-2|P-3|P-4|PE-1|PE-2|RR-1|RR-2|ce1|ce2)$
+          info: hostname is in the fabric set
+          err: FAIL - unexpected hostname

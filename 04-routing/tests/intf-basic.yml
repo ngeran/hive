@@ -1,0 +1,17 @@
+# Every interface unit must be operationally up.
+#
+# cRPD XML quirk (verified against snapshot XML): `show interfaces terse`
+# puts <oper-status> on the LOGICAL units (ethN.0, lsi.0, ...) only — the
+# <physical-interface> elements carry just <name> and nested units, so
+# iterating //physical-interface finds no oper-status anywhere. Test the
+# units; `ignore-null` skips any unit that lacks a status (none today).
+test_intf_units_up:
+  - command: show interfaces terse
+  - iterate:
+      xpath: //physical-interface/logical-interface
+      id: ./name
+      tests:
+        - not-equal: oper-status, down
+          ignore-null: True
+          info: unit is up
+          err: FAIL - unit is down

@@ -1,6 +1,8 @@
 ns := "topology"          # namespace the cRPD launcher pods live in
 nodes := "p1 p2 p3 p4 pe1 pe2 rr1 rr2 ce1 ce2"
 host := "10.0.0.29"
+netconf_user := "admin"   # root's password was rotated 2026-09-06; admin works
+netconf_pass := "manolis1"
 
 # One-time: install the clabernetes operator (v0.7.x, Helm OCI chart) into c9s.
 # The criSockOverride is the k3s-specific fix that lets launcher pods pull lab
@@ -115,6 +117,45 @@ load-configs name:
 # List saved snapshots.
 list-configs:
     @ls -1 configs/ 2>/dev/null || echo "(no snapshots yet — try just save-configs <name>)"
+
+# JSNAPy snapchecks against the whole fabric over NETCONF (host NodePorts
+# 32001–32010). `just verify` runs every tests/*.yml; `just verify intf-basic`
+# runs only that file. Non-zero exit on any failure — run after `just
+# load-configs <name>` to prove the milestone stuck. Auto-seeds ~/.jsnapy
+# on first run; see tests/README.md for writing tests.
+verify *tests:
+    #!/bin/sh -eu
+    cd tests
+    if [ -z "{{tests}}" ]; then
+        set -- *.yml
+    else
+        set --
+        for t in {{tests}}; do set -- "$@" "$t.yml"; done
+    fi
+    [ -e "$1" ] || { echo "no test files found in tests/"; exit 1; }
+    # First run on a host: jsnapy needs its config seeded from the package.
+    if [ ! -f "$HOME/.jsnapy/jsnapy.cfg" ]; then
+        pkg_dir=$(nix develop -c python -c 'import os, jnpr.jsnapy; print(os.path.dirname(jnpr.jsnapy.__file__))')
+        mkdir -p "$HOME/.jsnapy" "$HOME/jsnapy/snapshots"
+        cp "$pkg_dir/jsnapy.cfg" "$pkg_dir/logging.yml" "$HOME/.jsnapy/"
+        sed -i "s|/var/log/jsnapy|$HOME/.jsnapy|g" "$HOME/.jsnapy/logging.yml"
+        echo "seeded ~/.jsnapy (first run)"
+    fi
+    main=$(mktemp /tmp/jsnapy-main.XXXXXX.yml)
+    {
+        echo "hosts:"
+        i=1
+        for n in {{nodes}}; do
+            echo "  - device: {{host}}"
+            echo "    port: $((32000 + i))"
+            echo "    username: {{netconf_user}}"
+            echo "    passwd: {{netconf_pass}}"
+            i=$((i + 1))
+        done
+        echo "tests:"
+        for f in "$@"; do echo "  - $f"; done
+    } > "$main"
+    nix develop -c jsnapy --snapcheck -f "$main"
 
 # Tear down the topology (PVCs survive; delete them to wipe saved state).
 clean:

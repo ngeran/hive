@@ -59,6 +59,7 @@ just ports      # host access table (nodePort per node)
 just ssh p1     # ssh from the host into a router (root / clab123, then `cli`)
 just cli p1 "show interfaces eth1"   # one-off Junos command, no login
 just logs p1    # launcher pod logs (containerlab + vxlan wiring)
+just verify     # JSNAPy state checks (tests/*.yml) against all 10 nodes
 just clean      # delete the topology (operator stays; `helm -n c9s uninstall clabernetes` removes that)
 ```
 
@@ -94,20 +95,36 @@ ssh -p 31001 root@10.0.0.29                   # password: manolis1
 | ssh | 31001 | 31002 | 31003 | 31004 | 31005 | 31006 | 31007 | 31008 | 31009 | 31010 |
 | netconf | 32001 | 32002 | 32003 | 32004 | 32005 | 32006 | 32007 | 32008 | 32009 | 32010 |
 
-NETCONF for PyEZ/JSNAPy from the host: `10.0.0.29:3200X`, user `root`,
-password `manolis1`.
+NETCONF for PyEZ/JSNAPy from the host: `10.0.0.29:3200X`, user `admin`,
+password `manolis1`. (root's password was rotated on 2026-09-06 and no longer
+matches anything in this repo — use `admin`.)
 
 **From inside the cluster** (e.g. redcell-workspace): every node resolves as
 `<node>.topology.svc.cluster.local` — ssh port 22, NETCONF 830:
 
 ```python
 from jnpr.junos import Device
-with Device(host="p1.topology.svc.cluster.local", user="root",
+with Device(host="p1.topology.svc.cluster.local", user="admin",
             passwd="manolis1", port=830) as dev:
     print(dev.cli("show interfaces eth1"))
 ```
 
 **Without any login** (through the launcher): `just cli <node> "<command>"`.
+
+## Verifying state (JSNAPy)
+
+`just verify` runs JSNAPy snapchecks against **all 10 nodes** over NETCONF —
+one NodePort per node, tests live in `tests/*.yml` (see `tests/README.md` for
+the format and cRPD quirks). Non-zero exit on any failure, so it chains well
+after a config push:
+
+```bash
+just load-configs day1-ospf && just verify
+just verify intf-basic           # a single suite (file name minus .yml)
+```
+
+The devShell (`nix develop` / `direnv allow`) ships the `jsnapy` CLI — it's
+packaged in `flake.nix` (not in nixpkgs). First run seeds `~/.jsnapy/`.
 
 ## Saving & loading configs (named snapshots)
 

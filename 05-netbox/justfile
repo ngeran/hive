@@ -44,6 +44,26 @@ forward:
     echo "Log in with the admin user you created earlier."
     kubectl -n {{ns}} port-forward svc/{{dep}} {{port}}:80
 
+# Same, but detached — survives terminal close (log: /tmp/netbox-forward.log)
+forward-bg:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if curl -s -o /dev/null http://localhost:{{port}}; then
+        echo "NetBox already reachable at http://localhost:{{port}}"
+        exit 0
+    fi
+    nohup kubectl -n {{ns}} port-forward svc/{{dep}} {{port}}:80 >/tmp/netbox-forward.log 2>&1 &
+    for _ in $(seq 1 10); do
+        curl -s -o /dev/null http://localhost:{{port}} && break
+        sleep 1
+    done
+    curl -s -o /dev/null -w "NetBox at http://localhost:{{port}} (HTTP %{http_code})\n" http://localhost:{{port}}/
+
+# Kill every netbox port-forward (background AND foreground)
+forward-stop:
+    pkill -f "kubectl -n {{ns}} port-forward svc/{{dep}}" || true
+    echo "port-forwards stopped"
+
 # Drop into the Nix development shell
 shell:
     nix develop
