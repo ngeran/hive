@@ -9,7 +9,9 @@
   outputs = { self, nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = import nixpkgs { inherit system; };
+        # wpscan (attacker toolbox) is unfreeRedistributable in nixpkgs —
+        # this is a pentest tool image, allow it deliberately.
+        pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
 
         # Every tool here comes straight from nixpkgs — no apt, no pulled
         # base image, no digest to babysit. Want another tool later?
@@ -73,7 +75,7 @@
           # --- Web application testing ---
           gobuster            # directory / DNS brute-forcing
           ffuf                # fast web fuzzer (Go)
-          wfuzz               # web fuzzer
+          # wfuzz removed — needs pkg_resources, gone from python3.14/setuptools;
           dirb                # web content scanner
           whatweb             # web technology fingerprinting
           wapiti              # web vulnerability scanner
