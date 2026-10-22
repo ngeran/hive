@@ -86,6 +86,7 @@ data:
         try:
             with Device(host="%s.%s.svc.cluster.local" % (node, NS),
                         user=USER, password=PASSWORD, port=830,
+                        timeout=10, conn_open_timeout=5,
                         gather_facts=False) as dev:
                 for poller in POLLERS:
                     try:

@@ -28,3 +28,13 @@ data:
           index:
             prefix: index_
             period: 24h
+    # Retention even though storage is ephemeral — keeps Loki correct the day
+    # someone adds a volume, instead of growing without bound in the writable
+    # layer until then.
+    limits_config:
+      retention_period: 168h
+    compactor:
+      retention_enabled: true
+      # Loki 3.x refuses to start with retention enabled unless this points
+      # somewhere — filesystem maps to common.storage above.
+      delete_request_store: filesystem

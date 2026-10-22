@@ -20,6 +20,19 @@ spec:
         - name: promtail
           image: grafana/promtail:latest
           args: ["-config.file=/etc/promtail/promtail.yaml"]
+          # Without these, promtail defaults its kubernetes_sd node selector
+          # to the pod's own hostname (e.g. "promtail-rrhl6"), which matches
+          # no real node — discovery yields zero targets and Loki silently
+          # receives nothing. The promtail Helm chart sets exactly this pair.
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           volumeMounts:
             - name: config
               mountPath: /etc/promtail

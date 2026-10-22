@@ -1,5 +1,9 @@
 # Every fabric node must answer `show system information` with one of the
-# ten expected hostnames (P-1..P-4, PE-1/PE-2, RR-1/RR-2, lowercase ce1/ce2).
+# ten expected hostnames, in either form:
+#   - startup-config names (p1..p4, pe1/pe2, rr1/rr2, ce1/ce2) — what a
+#     fresh `just redeploy` yields;
+#   - day-1 renamed form (P-1..P-4, PE-1/PE-2, RR-1/RR-2) — carried by the
+#     renamed live fabric.
 #
 # jsnapy operand rules learned the hard way (see tests/README.md):
 # - operands are NOT YAML — jsnapy splits `xpath, operand` itself and does
@@ -12,6 +16,6 @@ test_hostname_set:
   - item:
       xpath: /system-information
       tests:
-        - regex: host-name, ^(P-1|P-2|P-3|P-4|PE-1|PE-2|RR-1|RR-2|ce1|ce2)$
+        - regex: host-name, ^(p1|p2|p3|p4|pe1|pe2|rr1|rr2|ce1|ce2|P-1|P-2|P-3|P-4|PE-1|PE-2|RR-1|RR-2)$
           info: hostname is in the fabric set
           err: FAIL - unexpected hostname

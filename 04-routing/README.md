@@ -87,7 +87,7 @@ just clean      # delete the topology (operator stays; `helm -n c9s uninstall cl
 
 ```bash
 just ssh p1                                   # or manually:
-ssh -p 31001 root@10.0.0.29                   # password: manolis1
+ssh -p 31001 root@10.0.0.31                   # password: manolis1
 ```
 
 | Node | p1 | p2 | p3 | p4 | pe1 | pe2 | rr1 | rr2 | ce1 | ce2 |
@@ -95,7 +95,7 @@ ssh -p 31001 root@10.0.0.29                   # password: manolis1
 | ssh | 31001 | 31002 | 31003 | 31004 | 31005 | 31006 | 31007 | 31008 | 31009 | 31010 |
 | netconf | 32001 | 32002 | 32003 | 32004 | 32005 | 32006 | 32007 | 32008 | 32009 | 32010 |
 
-NETCONF for PyEZ/JSNAPy from the host: `10.0.0.29:3200X`, user `admin`,
+NETCONF for PyEZ/JSNAPy from the host: `10.0.0.31:3200X`, user `admin`,
 password `manolis1`. (root's password was rotated on 2026-09-06 and no longer
 matches anything in this repo — use `admin`.)
 

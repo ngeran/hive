@@ -26,4 +26,13 @@ data:
             target_label: pod
           - source_labels: [__meta_kubernetes_pod_container_name]
             target_label: container
-        pipeline_stages: []
+          # CRITICAL: without __path__, kubernetes_sd targets carry no file to
+          # tail and promtail silently drops every one of them ("no path for
+          # target") — Loki then receives nothing at all. The "/" separator
+          # joins uid + container to match containerd's
+          # /var/log/pods/<ns>_<pod>_<uid>/<container>/*.log layout; the
+          # default ";" separator would build unmatchable paths.
+          - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
+            separator: /
+            target_label: __path__
+            replacement: /var/log/pods/*$1/*.log

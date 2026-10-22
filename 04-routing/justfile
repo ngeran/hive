@@ -1,7 +1,7 @@
 ns := "topology"          # namespace the cRPD launcher pods live in
 nodes := "p1 p2 p3 p4 pe1 pe2 rr1 rr2 ce1 ce2"
-host := "10.0.0.29"
-netconf_user := "admin"   # root's password was rotated 2026-09-06; admin works
+host := "10.0.0.31"
+netconf_user := "admin"   # admin & root are both manolis1 via startup-config
 netconf_pass := "manolis1"
 
 # One-time: install the clabernetes operator (v0.7.x, Helm OCI chart) into c9s.
@@ -78,14 +78,20 @@ save-configs name:
       i=$((i+1))
       out=configs/{{name}}/$n.conf
       ok=""
-      for pw in manolis1 clab123; do
-        export SSHPASS=$pw
+      # root lands in a shell (command needs `cli -c`); admin lands in the
+      # CLI directly. Both ship with manolis1 in the startup-config. Stage
+      # to .tmp so a failed run leaves no empty-file debris behind.
+      for cred in "root manolis1" "admin manolis1"; do
+        u=${cred%% *}; export SSHPASS=${cred##* }
+        [ "$u" = root ] && cmd="cli -c 'show configuration | display set'" \
+                        || cmd="show configuration | display set"
         if nix shell nixpkgs#sshpass -c sshpass -e ssh \
           -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-          -p $p root@{{host}} "cli -c 'show configuration | display set'" \
-          > "$out" 2>/dev/null && [ -s "$out" ]; then ok=1; break; fi
+          -p $p "$u"@{{host}} "$cmd" \
+          > "$out.tmp" 2>/dev/null && [ -s "$out.tmp" ]; then mv "$out.tmp" "$out"; ok=1; break; fi
       done
-      [ -n "$ok" ] || { echo "  $n: ssh failed (tried manolis1, clab123)"; exit 1; }
+      rm -f "$out.tmp"
+      [ -n "$ok" ] || { echo "  $n: ssh failed (root/admin, manolis1)"; exit 1; }
       lines=$(wc -l < "$out")
       echo "  saved $n ($lines lines)"
     done
@@ -103,14 +109,15 @@ load-configs name:
       [ -f "$f" ] || { echo "missing $f"; exit 1; }
       grep '^set ' "$f" | grep -v '^set version' > /tmp/$n.set
       ok=""
-      for pw in manolis1 clab123; do
-        export SSHPASS=$pw
+      for cred in "root manolis1" "admin manolis1"; do
+        u=${cred%% *}; export SSHPASS=${cred##* }
+        [ "$u" = root ] && cl="cli" || cl=""
         if { echo configure; cat /tmp/$n.set; echo commit; echo exit; } | \
           nix shell nixpkgs#sshpass -c sshpass -e ssh \
             -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            -p $p root@{{host}} "cli" 2>/dev/null | grep -q "commit complete"; then ok=1; break; fi
+            -p $p "$u"@{{host}} $cl 2>/dev/null | grep -q "commit complete"; then ok=1; break; fi
       done
-      [ -n "$ok" ] && echo "  loaded $n" || { echo "  $n: FAILED (tried manolis1, clab123)"; exit 1; }
+      [ -n "$ok" ] && echo "  loaded $n" || { echo "  $n: FAILED (root/admin, manolis1)"; exit 1; }
     done
     echo "snapshot loaded: configs/{{name}}/"
 

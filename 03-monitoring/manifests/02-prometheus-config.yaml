@@ -28,5 +28,15 @@ data:
             target_label: namespace
           - source_labels: [__meta_kubernetes_pod_name]
             target_label: pod
-
-      # Phase 4 will add a goflow2 job here — see 04-netflow's README note.
+          # Honor the prometheus.io/port and prometheus.io/path annotations.
+          # Without the __address__ rewrite, Prometheus scrapes the pod's first
+          # declared containerPort regardless of what the annotation says.
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            regex: (.+)
+            target_label: __metrics_path__

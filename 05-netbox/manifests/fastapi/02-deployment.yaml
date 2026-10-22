@@ -26,7 +26,21 @@ spec:
       # /static/ lives in an emptyDir (wiped on every pod start), so
       # collectstatic must run before gunicorn binds. The Nix image has no
       # fixed interpreter path, hence the store glob.
+      # migrate must run before gunicorn — a fresh netbox-db (which is exactly
+      # what a cluster rebuild leaves behind) has no tables, so every request
+      # would 500 and createsuperuser would fail. Runs on every start;
+      # Django's migrate is a no-op when current.
       initContainers:
+      - name: migrate
+        image: localhost:5000/hive-netbox:latest
+        imagePullPolicy: Always
+        command: ["/bin/bash", "-c"]
+        args:
+          - |
+            set -euo pipefail
+            PY="$(ls -d /nix/store/*-netbox-env/bin/python | head -n1)"
+            cd /app/netbox
+            "$PY" manage.py migrate --noinput
       - name: collectstatic
         image: localhost:5000/hive-netbox:latest
         imagePullPolicy: Always
@@ -46,6 +60,15 @@ spec:
         imagePullPolicy: Always
         ports:
         - containerPort: 8001
+        readinessProbe:
+          httpGet: { path: /login/, port: 8001 }
+          initialDelaySeconds: 15
+          periodSeconds: 15
+        resources:
+          # gunicorn --workers 3 ≈ 3 Django processes plus postgres/redis on
+          # the same node — bounded so NetBox can't starve the fabric.
+          requests: { cpu: "250m", memory: "512Mi" }
+          limits: { cpu: "1", memory: "1536Mi" }
         volumeMounts:
         - name: tmp
           mountPath: /tmp

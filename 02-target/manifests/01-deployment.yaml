@@ -27,4 +27,12 @@ spec:
               memory: "256Mi"
             limits:
               cpu: "500m"
-              memory: "512Mi"
+              # 512Mi OOMKilled Node under full-port nmap/gobuster scans —
+              # this limit exists to be attacked, give it headroom.
+              memory: "1Gi"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10

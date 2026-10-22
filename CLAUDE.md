@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this is
 
 HIVE (κυψέλη) is a hands-on network-security + observability lab on a local
-single-node k3s cluster (host: `nixos-btw`, LAN IP `10.0.0.29`). It deploys an
+single-node k3s cluster (host: `nixos-btw`, LAN IP `10.0.0.31`). It deploys an
 "attacker" toolbox pod, a deliberately vulnerable target (OWASP Juice Shop), a
 Prometheus/Loki/Grafana stack that visualizes the attack live, a 10-node
 Juniper cRPD routing fabric on clabernetes, and NetBox as IPAM/source-of-truth.
@@ -25,7 +25,7 @@ deployed in order; later phases assume earlier ones exist.
 |---|---|---|---|
 | `01-workspace/` | `redcell` | `redcell-workspace` | **built locally via Nix** (`localhost:5000/redcell-range:latest`, `python3.withPackages`) |
 | `02-target/` | `targets` | `juice-shop` | public (`bkimminich/juice-shop:latest`) |
-| `03-monitoring/` | `monitoring` | `prometheus`, `loki`, `grafana` + `promtail` DaemonSet, netconf-exporter script Job, pihole | public images |
+| `03-monitoring/` | `monitoring` | `prometheus`, `loki`, `grafana` + `promtail` DaemonSet, netconf-exporter Deployment, pihole | public images (exporter reuses the phase-01 image) |
 | `04-routing/` | `topology` (+ `c9s` = clabernetes operator) | 10 cRPD router pods via clabernetes `Topology` CR | **no image build** — crpd image pre-pushed to `localhost:5000`, operator from ghcr |
 | `05-netbox/` | `netbox` | `netbox` + `netbox-db` (postgres) + `netbox-redis` | **built locally via Nix** (`localhost:5000/hive-netbox:latest`, **uv2nix** from `pyproject.toml`+`uv.lock`) |
 
@@ -76,10 +76,13 @@ phase; its `README.md` is a stale scaffold template).
 
 ### Phase 04 (routing fabric) credentials
 
-NETCONF/SSH to the routers: user **`admin`** / `manolis1` (host NodePorts
-`10.0.0.29:3200X`, or `<node>.topology.svc.cluster.local:830` in-cluster).
-`root`'s password was rotated 2026-09-06 and matches nothing in the repo.
-Junos automation tooling (PyEZ + JSNAPy) lives in 04-routing's devShell, not
+NETCONF/SSH to the routers: **`admin`** or **`root`**, both `manolis1` (host
+NodePorts `10.0.0.31:3100X` ssh / `3200X` NETCONF, or
+`<node>.topology.svc.cluster.local:830` in-cluster). Both accounts are seeded
+by the startup ConfigMap. (A 2026-09-06 live-password rotation once left the
+committed root hash matching no known password; the ConfigMap now carries a
+regenerated `manolis1` hash — salt `MnLs2026` — for both accounts.) Junos
+automation tooling (PyEZ + JSNAPy) lives in 04-routing's devShell, not
 in the attacker pod.
 
 ## Common commands

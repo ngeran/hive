@@ -2,7 +2,11 @@ ns := "monitoring"
 
 deploy:
     kubectl apply -f manifests/
-    kubectl rollout restart deployment/prometheus deployment/loki deployment/grafana -n {{ns}}
+    # Restart everything whose code/config lives in a ConfigMap too — the
+    # netconf-exporter's whole script is one; skipping it makes `just deploy`
+    # a silent no-op for exporter script changes.
+    kubectl rollout restart deployment/prometheus deployment/loki deployment/grafana \
+      deployment/junos-netconf-exporter deployment/pihole -n {{ns}}
     kubectl rollout status deployment/grafana -n {{ns}}
 
 status:

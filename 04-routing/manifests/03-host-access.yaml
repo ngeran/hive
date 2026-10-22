@@ -6,8 +6,8 @@
 # launcher pods by their c9s.run/topologyNode label, forwarding only the two
 # ports that matter. Stable, predictable, no port-forward juggling.
 #
-#   ssh      root@10.0.0.29 -p 3100X     (password: manolis1)
-#   netconf  10.0.0.29:3200X             (PyEZ/JSNAPy from the host)
+#   ssh      root@10.0.0.31 -p 3100X     (password: manolis1)
+#   netconf  10.0.0.31:3200X             (PyEZ/JSNAPy from the host)
 #
 # where X: p1=1 p2=2 p3=3 p4=4 pe1=5 pe2=6 rr1=7 rr2=8 ce1=9 ce2=10
 # (`just ports` prints the current table.)
